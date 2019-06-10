@@ -17,11 +17,9 @@ Module.register("MMM-OneTouchReveal", {
 		colorEnabled: false,
 		url: "onetouchreveal.de",
 		lastDateFormat: 'DD. MMM HH:mm',
+		lastDateFormatToday: 'HH:mm',
 		chartDateFormat: 'MMM D',
 		width: "500px",
-		//Show Data from 1 Week
-		from: moment().subtract(1, "week").format('YYYYMMDD'),
-		end: moment().format('YYYYMMDD')
 	},
 
 	requiresVersion: "2.1.0", // Required version of MagicMirror
@@ -37,7 +35,12 @@ Module.register("MMM-OneTouchReveal", {
 	// start interval timer to update data every 5 minutes
 	dataTimer: function () {
 		var self = this;
-		this.dataID = setInterval(function () { self.sendSocketNotification('SYNC_DATA', { config: self.config }); }, this.config.updateInterval);
+		this.dataID = setInterval(function () {
+			//Show Data from 1 Week
+			self.from = moment().subtract(1, "week").format('YYYYMMDD');
+			self.end =  moment().format('YYYYMMDD');
+			self.sendSocketNotification('SYNC_DATA', { config: self.config }); 
+			}, this.config.updateInterval);
 	},
 
 	getColor: function (value) {
@@ -96,8 +99,11 @@ Module.register("MMM-OneTouchReveal", {
 		let timeSpan = document.createElement("span");
 		timeSpan.className = "light medium"
 		timeSpan.style = "display: table;vertical-align:middle;"
-		timeSpan.innerHTML = lastReading.format(self.config.lastDateFormat)
-
+		let isToday = moment().startOf("day").isSame(moment(lastReading).startOf("day"))
+		if (isToday)
+			timeSpan.innerHTML = this.translate("TODAY") + " " + lastReading.format(self.config.lastDateFormatToday)
+		else
+			timeSpan.innerHTML = lastReading.format(self.config.lastDateFormat)
 		let timeDeltaDiv = document.createElement("div");
 		timeDeltaDiv.style = 'display: table;';
 		timeDeltaDiv.appendChild(deltaSpan)
@@ -256,12 +262,12 @@ Module.register("MMM-OneTouchReveal", {
 			self.updateDom(self.config.animationSpeed);
 		}
 		if (notification === "DATA") {
-			Log.log(payload);
-			if (self.glucosedata != payload) {
+			//if (JSON.stringify(self.glucosedata) !== JSON.stringify(payload)) {
+				Log.log(this.name + " Updating Data", payload)
 				self.error = null
 				self.glucosedata = payload;
 				self.updateDom(self.config.animationSpeed);
-			}
+			//}
 		}
 	}
 });
